@@ -1,5 +1,6 @@
 INSERT INTO seasons (id, year, name, start_date, end_date) VALUES
-(1, 2025, 'Indian Premier League 2025', '2025-03-22', '2025-05-25');
+(1, 2025, 'Indian Premier League 2025', '2025-03-22', '2025-05-25'),
+(2, 2026, 'Indian Premier League 2026', '2026-03-20', '2026-05-31');
 
 INSERT INTO teams (id, code, name, home_city, logo_url) VALUES
 (1, 'CSK', 'Chennai Super Kings', 'Chennai', 'https://static.iplt20.com/teams/CSK.png'),
@@ -7,7 +8,11 @@ INSERT INTO teams (id, code, name, home_city, logo_url) VALUES
 (3, 'RCB', 'Royal Challengers Bengaluru', 'Bengaluru', 'https://static.iplt20.com/teams/RCB.png'),
 (4, 'KKR', 'Kolkata Knight Riders', 'Kolkata', 'https://static.iplt20.com/teams/KKR.png'),
 (5, 'SRH', 'Sunrisers Hyderabad', 'Hyderabad', 'https://static.iplt20.com/teams/SRH.png'),
-(6, 'GT', 'Gujarat Titans', 'Ahmedabad', 'https://static.iplt20.com/teams/GT.png');
+(6, 'GT', 'Gujarat Titans', 'Ahmedabad', 'https://static.iplt20.com/teams/GT.png'),
+(7, 'RR', 'Rajasthan Royals', 'Jaipur', 'https://static.iplt20.com/teams/RR.png'),
+(8, 'DC', 'Delhi Capitals', 'Delhi', 'https://static.iplt20.com/teams/DC.png'),
+(9, 'PBKS', 'Punjab Kings', 'Mohali', 'https://static.iplt20.com/teams/PBKS.png'),
+(10, 'LSG', 'Lucknow Super Giants', 'Lucknow', 'https://static.iplt20.com/teams/LSG.png');
 
 INSERT INTO venues (id, name, city, country) VALUES
 (1, 'MA Chidambaram Stadium', 'Chennai', 'India'),
@@ -15,7 +20,11 @@ INSERT INTO venues (id, name, city, country) VALUES
 (3, 'M. Chinnaswamy Stadium', 'Bengaluru', 'India'),
 (4, 'Eden Gardens', 'Kolkata', 'India'),
 (5, 'Rajiv Gandhi International Stadium', 'Hyderabad', 'India'),
-(6, 'Narendra Modi Stadium', 'Ahmedabad', 'India');
+(6, 'Narendra Modi Stadium', 'Ahmedabad', 'India'),
+(7, 'Sawai Mansingh Stadium', 'Jaipur', 'India'),
+(8, 'Arun Jaitley Stadium', 'Delhi', 'India'),
+(9, 'Maharaja Yadavindra Singh Stadium', 'Mohali', 'India'),
+(10, 'Bharat Ratna Shri Atal Bihari Vajpayee Ekana Cricket Stadium', 'Lucknow', 'India');
 
 INSERT INTO players (id, full_name, country, batting_style, bowling_style) VALUES
 (1, 'Ruturaj Gaikwad', 'India', 'Right-hand bat', NULL),
@@ -41,7 +50,25 @@ INSERT INTO players (id, full_name, country, batting_style, bowling_style) VALUE
 (21, 'Shubman Gill', 'India', 'Right-hand bat', NULL),
 (22, 'Rashid Khan', 'Afghanistan', 'Right-hand bat', 'Right-arm legbreak'),
 (23, 'David Miller', 'South Africa', 'Left-hand bat', NULL),
-(24, 'Mohammed Shami', 'India', 'Right-hand bat', 'Right-arm fast');
+(24, 'Mohammed Shami', 'India', 'Right-hand bat', 'Right-arm fast'),
+(25, 'Rajat Patidar', 'India', 'Right-hand bat', 'Right-arm offbreak'),
+(26, 'Ajinkya Rahane', 'India', 'Right-hand bat', NULL),
+(27, 'Sanju Samson', 'India', 'Right-hand bat', NULL),
+(28, 'Yashasvi Jaiswal', 'India', 'Left-hand bat', 'Right-arm legbreak'),
+(29, 'Riyan Parag', 'India', 'Right-hand bat', 'Right-arm legbreak'),
+(30, 'Jofra Archer', 'England', 'Right-hand bat', 'Right-arm fast'),
+(31, 'Axar Patel', 'India', 'Left-hand bat', 'Left-arm orthodox'),
+(32, 'KL Rahul', 'India', 'Right-hand bat', NULL),
+(33, 'Kuldeep Yadav', 'India', 'Left-hand bat', 'Left-arm wrist spin'),
+(34, 'Mitchell Starc', 'Australia', 'Left-hand bat', 'Left-arm fast'),
+(35, 'Shashank Singh', 'India', 'Right-hand bat', 'Right-arm offbreak'),
+(36, 'Arshdeep Singh', 'India', 'Left-hand bat', 'Left-arm fast'),
+(37, 'Marcus Stoinis', 'Australia', 'Right-hand bat', 'Right-arm medium'),
+(38, 'Rishabh Pant', 'India', 'Left-hand bat', NULL),
+(39, 'Nicholas Pooran', 'West Indies', 'Left-hand bat', NULL),
+(40, 'Ravi Bishnoi', 'India', 'Right-hand bat', 'Right-arm legbreak'),
+(41, 'Mayank Yadav', 'India', 'Right-hand bat', 'Right-arm fast'),
+(42, 'Noor Ahmad', 'Afghanistan', 'Right-hand bat', 'Left-arm wrist spin');
 
 INSERT INTO team_seasons (id, season_id, team_id, captain_player_id) VALUES
 (1, 1, 1, 1),
@@ -49,7 +76,17 @@ INSERT INTO team_seasons (id, season_id, team_id, captain_player_id) VALUES
 (3, 1, 3, 9),
 (4, 1, 4, 13),
 (5, 1, 5, 17),
-(6, 1, 6, 21);
+(6, 1, 6, 21),
+(7, 2, 1, 1),
+(8, 2, 2, 5),
+(9, 2, 3, 25),
+(10, 2, 4, 26),
+(11, 2, 5, 17),
+(12, 2, 6, 21),
+(13, 2, 7, 27),
+(14, 2, 8, 31),
+(15, 2, 9, 13),
+(16, 2, 10, 38);
 
 INSERT INTO squad_members (team_season_id, player_id, player_role, is_overseas) VALUES
 (1, 1, 'batter', 0), (1, 2, 'WK', 0), (1, 3, 'all-rounder', 0), (1, 4, 'bowler', 1),
@@ -57,7 +94,17 @@ INSERT INTO squad_members (team_season_id, player_id, player_role, is_overseas) 
 (3, 9, 'batter', 1), (3, 10, 'batter', 0), (3, 11, 'WK', 0), (3, 12, 'bowler', 0),
 (4, 13, 'batter', 0), (4, 14, 'all-rounder', 1), (4, 15, 'all-rounder', 1), (4, 16, 'batter', 0),
 (5, 17, 'bowler', 1), (5, 18, 'batter', 1), (5, 19, 'WK', 1), (5, 20, 'bowler', 0),
-(6, 21, 'batter', 0), (6, 22, 'all-rounder', 1), (6, 23, 'batter', 1), (6, 24, 'bowler', 0);
+(6, 21, 'batter', 0), (6, 22, 'all-rounder', 1), (6, 23, 'batter', 1), (6, 24, 'bowler', 0),
+(7, 1, 'batter', 0), (7, 2, 'WK', 0), (7, 3, 'all-rounder', 0), (7, 42, 'bowler', 1),
+(8, 5, 'all-rounder', 0), (8, 6, 'batter', 0), (8, 7, 'batter', 0), (8, 8, 'bowler', 0),
+(9, 25, 'batter', 0), (9, 10, 'batter', 0), (9, 11, 'WK', 0), (9, 12, 'bowler', 0),
+(10, 26, 'batter', 0), (10, 14, 'all-rounder', 1), (10, 15, 'all-rounder', 1), (10, 16, 'batter', 0),
+(11, 17, 'bowler', 1), (11, 18, 'batter', 1), (11, 19, 'WK', 1), (11, 20, 'bowler', 0),
+(12, 21, 'batter', 0), (12, 22, 'all-rounder', 1), (12, 23, 'batter', 1), (12, 24, 'bowler', 0),
+(13, 27, 'WK', 0), (13, 28, 'batter', 0), (13, 29, 'all-rounder', 0), (13, 30, 'bowler', 1),
+(14, 31, 'all-rounder', 0), (14, 32, 'WK', 0), (14, 33, 'bowler', 0), (14, 34, 'bowler', 1),
+(15, 13, 'batter', 0), (15, 35, 'batter', 0), (15, 36, 'bowler', 0), (15, 37, 'all-rounder', 1),
+(16, 38, 'WK', 0), (16, 39, 'WK', 1), (16, 40, 'bowler', 0), (16, 41, 'bowler', 0);
 
 INSERT INTO matches (
     id, season_id, match_number, match_date, venue_id, home_team_id, away_team_id,
@@ -70,7 +117,17 @@ INSERT INTO matches (
 (5, 1, 5, '2025-03-28T14:00:00Z', 3, 3, 2, NULL, NULL, 'live', 'normal', NULL, '2025-03-28T14:00:00Z', NULL),
 (6, 1, 6, '2025-03-30T14:00:00Z', 5, 5, 1, NULL, NULL, 'upcoming', 'normal', NULL, NULL, NULL),
 (7, 1, 7, '2025-04-01T14:00:00Z', 4, 4, 6, NULL, NULL, 'upcoming', 'normal', NULL, NULL, NULL),
-(8, 1, 8, '2025-04-03T14:00:00Z', 2, 2, 1, NULL, NULL, 'upcoming', 'normal', NULL, NULL, NULL);
+(8, 1, 8, '2025-04-03T14:00:00Z', 2, 2, 1, NULL, NULL, 'upcoming', 'normal', NULL, NULL, NULL),
+(9, 2, 1, '2026-03-20T14:00:00Z', 6, 6, 1, 1, 6, 'completed', 'normal', 'Gujarat Titans won by 18 runs', '2026-03-20T14:00:00Z', '2026-03-20T18:02:00Z'),
+(10, 2, 2, '2026-03-21T14:00:00Z', 2, 2, 3, 3, 3, 'completed', 'normal', 'Royal Challengers Bengaluru won by 5 wickets', '2026-03-21T14:00:00Z', '2026-03-21T17:55:00Z'),
+(11, 2, 3, '2026-03-22T14:00:00Z', 4, 4, 5, 4, 5, 'completed', 'normal', 'Sunrisers Hyderabad won by 7 wickets', '2026-03-22T14:00:00Z', '2026-03-22T17:42:00Z'),
+(12, 2, 4, '2026-03-23T14:00:00Z', 7, 7, 8, 8, 7, 'completed', 'normal', 'Rajasthan Royals won by 22 runs', '2026-03-23T14:00:00Z', '2026-03-23T18:08:00Z'),
+(13, 2, 5, '2026-03-24T14:00:00Z', 9, 9, 10, 9, 10, 'completed', 'normal', 'Lucknow Super Giants won by 3 wickets', '2026-03-24T14:00:00Z', '2026-03-24T18:15:00Z'),
+(14, 2, 6, '2026-03-26T14:00:00Z', 1, 1, 2, 2, NULL, 'completed', 'no_result', 'Match abandoned due to rain', '2026-03-26T14:00:00Z', '2026-03-26T15:20:00Z'),
+(15, 2, 7, '2026-03-28T14:00:00Z', 3, 3, 7, NULL, NULL, 'live', 'normal', NULL, '2026-03-28T14:00:00Z', NULL),
+(16, 2, 8, '2026-03-30T14:00:00Z', 8, 8, 4, NULL, NULL, 'upcoming', 'normal', NULL, NULL, NULL),
+(17, 2, 9, '2026-04-01T14:00:00Z', 10, 10, 5, NULL, NULL, 'upcoming', 'normal', NULL, NULL, NULL),
+(18, 2, 10, '2026-04-03T14:00:00Z', 6, 6, 9, NULL, NULL, 'upcoming', 'normal', NULL, NULL, NULL);
 
 INSERT INTO innings_scores (match_id, innings_number, batting_team_id, bowling_team_id, runs, wickets, balls_faced, extras) VALUES
 (1, 1, 3, 1, 171, 7, 120, 9),
@@ -79,7 +136,18 @@ INSERT INTO innings_scores (match_id, innings_number, batting_team_id, bowling_t
 (2, 2, 2, 6, 176, 8, 120, 7),
 (3, 1, 4, 5, 184, 6, 120, 10),
 (3, 2, 5, 4, 178, 8, 120, 6),
-(5, 1, 3, 2, 96, 3, 72, 4);
+(5, 1, 3, 2, 96, 3, 72, 4),
+(9, 1, 6, 1, 192, 6, 120, 11),
+(9, 2, 1, 6, 174, 8, 120, 7),
+(10, 1, 2, 3, 168, 7, 120, 6),
+(10, 2, 3, 2, 169, 5, 113, 8),
+(11, 1, 4, 5, 162, 8, 120, 5),
+(11, 2, 5, 4, 164, 3, 108, 9),
+(12, 1, 7, 8, 201, 5, 120, 12),
+(12, 2, 8, 7, 179, 9, 120, 7),
+(13, 1, 9, 10, 156, 7, 120, 6),
+(13, 2, 10, 9, 157, 7, 118, 5),
+(15, 1, 3, 7, 84, 2, 60, 3);
 
 INSERT INTO team_standings (
     season_id, team_id, rank, matches_played, won, lost, no_result, points, net_run_rate, last_calculated_at
@@ -89,4 +157,14 @@ INSERT INTO team_standings (
 (1, 4, 3, 1, 1, 0, 0, 2, 0.300, '2025-03-26T19:00:00Z'),
 (1, 5, 4, 1, 0, 1, 0, 0, -0.300, '2025-03-26T19:00:00Z'),
 (1, 2, 5, 1, 0, 1, 0, 0, -0.600, '2025-03-26T19:00:00Z'),
-(1, 3, 6, 1, 0, 1, 0, 0, -0.245, '2025-03-26T19:00:00Z');
+(1, 3, 6, 1, 0, 1, 0, 0, -0.245, '2025-03-26T19:00:00Z'),
+(2, 7, 1, 1, 1, 0, 0, 2, 1.100, '2026-03-26T19:00:00Z'),
+(2, 5, 2, 1, 1, 0, 0, 2, 1.022, '2026-03-26T19:00:00Z'),
+(2, 3, 3, 1, 1, 0, 0, 2, 0.704, '2026-03-26T19:00:00Z'),
+(2, 6, 4, 1, 1, 0, 0, 2, 0.900, '2026-03-26T19:00:00Z'),
+(2, 10, 5, 1, 1, 0, 0, 2, 0.051, '2026-03-26T19:00:00Z'),
+(2, 1, 6, 2, 0, 1, 1, 1, -0.900, '2026-03-26T19:00:00Z'),
+(2, 2, 7, 2, 0, 1, 1, 1, -0.704, '2026-03-26T19:00:00Z'),
+(2, 9, 8, 1, 0, 1, 0, 0, -0.051, '2026-03-26T19:00:00Z'),
+(2, 8, 9, 1, 0, 1, 0, 0, -1.100, '2026-03-26T19:00:00Z'),
+(2, 4, 10, 1, 0, 1, 0, 0, -1.022, '2026-03-26T19:00:00Z');

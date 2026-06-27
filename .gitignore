@@ -5,5 +5,8 @@ backend/.venv/
 frontend/node_modules/
 frontend/dist/
 frontend/*.log
+docs/screenshots/*.txt
 .env
 .DS_Store
+PRIVATE_*.md
+*_DO_NOT_COMMIT.md

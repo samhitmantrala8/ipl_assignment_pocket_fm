@@ -23,7 +23,14 @@ Common status codes:
 - `200 OK`: request succeeded.
 - `400 Bad Request`: invalid query parameter or path parameter.
 - `404 Not Found`: season, team, or match does not exist.
+- `422 Unprocessable Entity`: requested IPL season is after the latest scheduled season.
 - `500 Internal Server Error`: unexpected server failure.
+
+Known season errors:
+
+- Seasons before `2008` return `400` with `code = "ipl_not_started"`.
+- Seasons after `2027` return `422` with `code = "season_not_available"`.
+- Season `2027` is accepted as an upcoming scheduled season.
 
 ## GET /v1/seasons
 
@@ -62,6 +69,15 @@ Query parameters:
 - `teamCode` string, optional. Filters matches where the team is either home or away team.
 
 Sort order: `matchDate DESC`, then `matchNumber DESC`.
+
+For upcoming or live matches, `winner` must be:
+
+```json
+{
+  "code": "TBD",
+  "name": "TBD"
+}
+```
 
 Example request:
 

@@ -113,6 +113,16 @@ CREATE TABLE team_standings (
     CHECK (matches_played = won + lost + no_result)
 );
 
+CREATE TABLE standings_refresh_runs (
+    id BIGSERIAL PRIMARY KEY,
+    season_id BIGINT REFERENCES seasons(id) ON DELETE SET NULL,
+    started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    completed_at TIMESTAMPTZ,
+    status VARCHAR(20) NOT NULL CHECK (status IN ('running', 'succeeded', 'failed')),
+    matches_scanned INTEGER NOT NULL DEFAULT 0 CHECK (matches_scanned >= 0),
+    message TEXT
+);
+
 CREATE INDEX idx_matches_season_date ON matches (season_id, match_date DESC, match_number);
 CREATE INDEX idx_matches_season_status ON matches (season_id, status);
 CREATE INDEX idx_matches_home_team ON matches (home_team_id);
@@ -120,3 +130,4 @@ CREATE INDEX idx_matches_away_team ON matches (away_team_id);
 CREATE INDEX idx_innings_match ON innings_scores (match_id, innings_number);
 CREATE INDEX idx_squad_team_season_role ON squad_members (team_season_id, player_role);
 CREATE INDEX idx_standings_season_rank ON team_standings (season_id, rank);
+CREATE INDEX idx_standings_refresh_started ON standings_refresh_runs (started_at DESC);

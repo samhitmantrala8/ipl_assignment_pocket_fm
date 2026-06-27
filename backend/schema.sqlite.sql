@@ -105,8 +105,19 @@ CREATE TABLE IF NOT EXISTS team_standings (
     CHECK (matches_played = won + lost + no_result)
 );
 
+CREATE TABLE IF NOT EXISTS standings_refresh_runs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    season_id INTEGER REFERENCES seasons(id) ON DELETE SET NULL,
+    started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    completed_at TEXT,
+    status TEXT NOT NULL CHECK (status IN ('running', 'succeeded', 'failed')),
+    matches_scanned INTEGER NOT NULL DEFAULT 0 CHECK (matches_scanned >= 0),
+    message TEXT
+);
+
 CREATE INDEX IF NOT EXISTS idx_matches_season_date ON matches (season_id, match_date DESC, match_number);
 CREATE INDEX IF NOT EXISTS idx_matches_season_status ON matches (season_id, status);
 CREATE INDEX IF NOT EXISTS idx_innings_match ON innings_scores (match_id, innings_number);
 CREATE INDEX IF NOT EXISTS idx_squad_team_season_role ON squad_members (team_season_id, player_role);
 CREATE INDEX IF NOT EXISTS idx_standings_season_rank ON team_standings (season_id, rank);
+CREATE INDEX IF NOT EXISTS idx_standings_refresh_started ON standings_refresh_runs (started_at DESC);

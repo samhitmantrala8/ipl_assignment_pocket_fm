@@ -3,11 +3,12 @@ import { createRoot } from "react-dom/client";
 import "./styles.css";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:5000";
-const SEASON = 2025;
 const PAGE_SIZE = 3;
 
 function App() {
   const [tab, setTab] = useState("matches");
+  const [season, setSeason] = useState(2026);
+  const seasons = useApi("/v1/seasons");
 
   return (
     <main className="min-h-screen bg-stone-50 text-slate-950">
@@ -20,9 +21,20 @@ function App() {
               </p>
               <h1 className="mt-1 text-3xl font-bold">Matches, points and squads</h1>
             </div>
-            <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
-              Season {SEASON}
-            </div>
+            <label className="flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+              <span className="font-semibold">Season</span>
+              <select
+                value={season}
+                onChange={(event) => setSeason(Number(event.target.value))}
+                className="rounded border border-slate-300 bg-white px-2 py-1"
+              >
+                {(seasons.data?.data ?? [{ year: season }]).map((item) => (
+                  <option key={item.year} value={item.year}>
+                    {item.year}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
           <nav className="flex gap-2">
             {[
@@ -48,15 +60,15 @@ function App() {
       </header>
 
       <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        {tab === "matches" && <Matches />}
-        {tab === "points" && <PointsTable />}
-        {tab === "teams" && <Teams />}
+        {tab === "matches" && <Matches season={season} />}
+        {tab === "points" && <PointsTable season={season} />}
+        {tab === "teams" && <Teams season={season} />}
       </section>
     </main>
   );
 }
 
-function Matches() {
+function Matches({ season }) {
   const [matches, setMatches] = useState([]);
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState("");
@@ -77,7 +89,7 @@ function Matches() {
           pageSize: String(PAGE_SIZE)
         });
         if (status) params.set("status", status);
-        const response = await fetch(`${API_BASE}/v1/seasons/${SEASON}/matches?${params}`);
+        const response = await fetch(`${API_BASE}/v1/seasons/${season}/matches?${params}`);
         if (!response.ok) throw new Error("Unable to load matches");
         const payload = await response.json();
         setMatches((current) => (replace ? payload.data : [...current, ...payload.data]));
@@ -89,7 +101,7 @@ function Matches() {
         setLoading(false);
       }
     },
-    [status]
+    [season, status]
   );
 
   useEffect(() => {
@@ -168,8 +180,8 @@ function Matches() {
   );
 }
 
-function PointsTable() {
-  const { data, loading, error } = useApi(`/v1/seasons/${SEASON}/points-table`);
+function PointsTable({ season }) {
+  const { data, loading, error } = useApi(`/v1/seasons/${season}/points-table`);
   const rows = data?.data ?? [];
 
   return (
@@ -216,10 +228,10 @@ function PointsTable() {
   );
 }
 
-function Teams() {
-  const { data, loading, error } = useApi(`/v1/seasons/${SEASON}/teams`);
+function Teams({ season }) {
+  const { data, loading, error } = useApi(`/v1/seasons/${season}/teams`);
   const [selectedCode, setSelectedCode] = useState("CSK");
-  const selected = useApi(`/v1/seasons/${SEASON}/teams/${selectedCode}`);
+  const selected = useApi(`/v1/seasons/${season}/teams/${selectedCode}`);
 
   useEffect(() => {
     if (!data?.data?.length) return;

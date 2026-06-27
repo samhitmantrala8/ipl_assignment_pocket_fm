@@ -4,6 +4,7 @@ import os
 import sqlite3
 import time
 from contextlib import closing
+from datetime import date, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -17,6 +18,14 @@ SEED_PATH = BASE_DIR / "seed.sql"
 
 CACHE_TTL_SECONDS = int(os.environ.get("CACHE_TTL_SECONDS", "60"))
 _cache: dict[str, tuple[float, Any]] = {}
+ALLOWED_ORIGINS = {
+    "http://127.0.0.1:5173",
+    "http://localhost:5173",
+}
+MIN_IPL_SEASON = 2008
+LAST_COMPLETED_SEASON = 2026
+SCHEDULED_SEASON = 2027
+MAX_AVAILABLE_SEASON = SCHEDULED_SEASON
 
 
 def create_app() -> Flask:
@@ -24,9 +33,12 @@ def create_app() -> Flask:
 
     @app.after_request
     def add_cors_headers(response):
-        response.headers["Access-Control-Allow-Origin"] = os.environ.get(
-            "CORS_ORIGIN", "http://localhost:5173"
-        )
+        configured_origin = os.environ.get("CORS_ORIGIN")
+        allowed_origins = {configured_origin} if configured_origin else ALLOWED_ORIGINS
+        request_origin = request.headers.get("Origin")
+        if request_origin in allowed_origins:
+            response.headers["Access-Control-Allow-Origin"] = request_origin
+            response.headers["Vary"] = "Origin"
         response.headers["Access-Control-Allow-Headers"] = "Content-Type"
         response.headers["Access-Control-Allow-Methods"] = "GET, OPTIONS"
         return response
@@ -221,7 +233,9 @@ def create_app() -> Flask:
                     "homeTeam": {"code": row["home_code"], "name": row["home_name"]},
                     "awayTeam": {"code": row["away_code"], "name": row["away_name"]},
                     "status": row["status"],
-                    "winner": team_ref(row["winner_code"], row["winner_name"]),
+                    "winner": match_winner_ref(
+                        row["winner_code"], row["winner_name"], row["status"]
+                    ),
                     "resultType": row["result_type"],
                     "resultSummary": row["result_summary"],
                     "innings": [
@@ -443,6 +457,8 @@ def init_db() -> None:
         count = conn.execute("SELECT COUNT(*) FROM seasons").fetchone()[0]
         if count == 0:
             conn.executescript(SEED_PATH.read_text(encoding="utf-8"))
+        backfill_historical_demo_seasons(conn)
+        refresh_all_standings(conn)
         conn.commit()
 
 
@@ -477,8 +493,18 @@ def parse_int_arg(name: str, default: int) -> int:
 
 
 def validate_season_year(season_year: int):
-    if season_year < 2008 or season_year > 2100:
-        return error_response("bad_request", "seasonYear is outside the IPL range", 400)
+    if season_year < MIN_IPL_SEASON:
+        return error_response(
+            "ipl_not_started",
+            f"IPL did not exist before {MIN_IPL_SEASON}",
+            400,
+        )
+    if season_year > MAX_AVAILABLE_SEASON:
+        return error_response(
+            "season_not_available",
+            f"IPL season {season_year} is upcoming or not available yet",
+            422,
+        )
     return None
 
 
@@ -520,7 +546,7 @@ def match_summary(row: sqlite3.Row, scores_by_team: dict[int, sqlite3.Row]) -> d
                 "score": score_payload(away_score),
             },
         },
-        "winner": team_ref(row["winner_code"], row["winner_name"]),
+        "winner": match_winner_ref(row["winner_code"], row["winner_name"], row["status"]),
         "status": row["status"],
         "resultType": row["result_type"],
         "resultSummary": row["result_summary"],
@@ -547,10 +573,290 @@ def team_ref(code: str | None, name: str | None) -> dict[str, str] | None:
     return {"code": code, "name": name}
 
 
+def match_winner_ref(code: str | None, name: str | None, status: str) -> dict[str, str]:
+    if code and name:
+        return {"code": code, "name": name}
+    if status in {"upcoming", "live"}:
+        return {"code": "TBD", "name": "TBD"}
+    return {"code": "NONE", "name": "No result"}
+
+
 def player_ref(player_id: int | None, name: str | None) -> dict[str, Any] | None:
     if not player_id or not name:
         return None
     return {"id": player_id, "name": name}
+
+
+def backfill_historical_demo_seasons(conn: sqlite3.Connection) -> None:
+    team_ids = [row[0] for row in conn.execute("SELECT id FROM teams ORDER BY id LIMIT 10")]
+    player_ids = [row[0] for row in conn.execute("SELECT id FROM players ORDER BY id")]
+    if len(team_ids) < 2 or len(player_ids) < 4:
+        return
+
+    team_names = {
+        row[0]: row[1]
+        for row in conn.execute("SELECT id, name FROM teams")
+    }
+
+    captain_rows = conn.execute(
+        """
+        SELECT team_id, MIN(captain_player_id)
+        FROM team_seasons
+        WHERE captain_player_id IS NOT NULL
+        GROUP BY team_id
+        """
+    ).fetchall()
+    captain_by_team = {team_id: captain_id for team_id, captain_id in captain_rows}
+    roles = ["batter", "WK", "all-rounder", "bowler"]
+
+    for year in range(MIN_IPL_SEASON, SCHEDULED_SEASON + 1):
+        conn.execute(
+            """
+            INSERT OR IGNORE INTO seasons (year, name, start_date, end_date)
+            VALUES (?, ?, ?, ?)
+            """,
+            (
+                year,
+                f"Indian Premier League {year}",
+                f"{year}-03-20",
+                f"{year}-05-31",
+            ),
+        )
+        season_id = conn.execute("SELECT id FROM seasons WHERE year = ?", (year,)).fetchone()[0]
+
+        for team_id in team_ids:
+            conn.execute(
+                """
+                INSERT OR IGNORE INTO team_seasons (season_id, team_id, captain_player_id)
+                VALUES (?, ?, ?)
+                """,
+                (season_id, team_id, captain_by_team.get(team_id)),
+            )
+            team_season_id = conn.execute(
+                "SELECT id FROM team_seasons WHERE season_id = ? AND team_id = ?",
+                (season_id, team_id),
+            ).fetchone()[0]
+            squad_count = conn.execute(
+                "SELECT COUNT(*) FROM squad_members WHERE team_season_id = ?",
+                (team_season_id,),
+            ).fetchone()[0]
+            if squad_count == 0:
+                for offset, role in enumerate(roles):
+                    player_id = player_ids[(team_id * 3 + year + offset) % len(player_ids)]
+                    conn.execute(
+                        """
+                        INSERT OR IGNORE INTO squad_members
+                            (team_season_id, player_id, player_role, is_overseas)
+                        VALUES (?, ?, ?, ?)
+                        """,
+                        (team_season_id, player_id, role, 1 if offset == 3 else 0),
+                    )
+
+        existing_matches = conn.execute(
+            "SELECT COUNT(*) FROM matches WHERE season_id = ?",
+            (season_id,),
+        ).fetchone()[0]
+        if existing_matches == 74:
+            continue
+
+        conn.execute(
+            """
+            DELETE FROM innings_scores
+            WHERE match_id IN (SELECT id FROM matches WHERE season_id = ?)
+            """,
+            (season_id,),
+        )
+        conn.execute("DELETE FROM matches WHERE season_id = ?", (season_id,))
+        conn.execute("DELETE FROM team_standings WHERE season_id = ?", (season_id,))
+
+        for match_number in range(1, 75):
+            home_team_id = team_ids[(match_number + year) % len(team_ids)]
+            away_team_id = team_ids[(match_number + year + 4) % len(team_ids)]
+            if home_team_id == away_team_id:
+                away_team_id = team_ids[(match_number + year + 5) % len(team_ids)]
+
+            venue_id = ((match_number + year) % 10) + 1
+            home_runs = 145 + ((year + match_number * 7) % 62)
+            away_runs = 138 + ((year + match_number * 5) % 58)
+            is_scheduled = year == SCHEDULED_SEASON
+            winner_team_id = None if is_scheduled else home_team_id if home_runs >= away_runs else away_team_id
+            match_date = date(year, 3, 20) + timedelta(days=match_number - 1)
+            winner_name = team_names.get(winner_team_id, "TBD")
+
+            conn.execute(
+                """
+                INSERT INTO matches (
+                    season_id, match_number, match_date, venue_id, home_team_id, away_team_id,
+                    toss_winner_team_id, winner_team_id, status, result_type, result_summary,
+                    started_at, completed_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    season_id,
+                    match_number,
+                    f"{match_date.isoformat()}T14:00:00Z",
+                    venue_id,
+                    home_team_id,
+                    away_team_id,
+                    home_team_id,
+                    winner_team_id,
+                    "upcoming" if is_scheduled else "completed",
+                    "normal",
+                    None if is_scheduled else f"{winner_name} won in demo result",
+                    None if is_scheduled else f"{match_date.isoformat()}T14:00:00Z",
+                    None if is_scheduled else f"{match_date.isoformat()}T18:00:00Z",
+                ),
+            )
+            match_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+            if is_scheduled:
+                continue
+
+            conn.execute(
+                """
+                INSERT INTO innings_scores
+                    (match_id, innings_number, batting_team_id, bowling_team_id, runs, wickets, balls_faced, extras)
+                VALUES (?, 1, ?, ?, ?, ?, 120, 6)
+                """,
+                (match_id, home_team_id, away_team_id, home_runs, 3 + ((year + match_number) % 6)),
+            )
+            conn.execute(
+                """
+                INSERT INTO innings_scores
+                    (match_id, innings_number, batting_team_id, bowling_team_id, runs, wickets, balls_faced, extras)
+                VALUES (?, 2, ?, ?, ?, ?, 120, 5)
+                """,
+                (match_id, away_team_id, home_team_id, away_runs, 4 + ((year + match_number) % 5)),
+            )
+
+
+def refresh_all_standings(conn: sqlite3.Connection) -> None:
+    season_ids = [row[0] for row in conn.execute("SELECT id FROM seasons")]
+    for season_id in season_ids:
+        refresh_standings_for_season(conn, season_id)
+
+
+def refresh_standings_for_season(conn: sqlite3.Connection, season_id: int) -> None:
+    team_ids = [
+        row[0]
+        for row in conn.execute(
+            "SELECT team_id FROM team_seasons WHERE season_id = ?",
+            (season_id,),
+        )
+    ]
+    if not team_ids:
+        return
+
+    stats = {
+        team_id: {
+            "team_name": conn.execute(
+                "SELECT name FROM teams WHERE id = ?",
+                (team_id,),
+            ).fetchone()[0],
+            "played": 0,
+            "won": 0,
+            "lost": 0,
+            "nr": 0,
+            "points": 0,
+            "runs_for": 0,
+            "balls_for": 0,
+            "runs_against": 0,
+            "balls_against": 0,
+        }
+        for team_id in team_ids
+    }
+
+    matches = conn.execute(
+        """
+        SELECT id, home_team_id, away_team_id, winner_team_id, result_type
+        FROM matches
+        WHERE season_id = ? AND status = 'completed'
+        """,
+        (season_id,),
+    ).fetchall()
+
+    for match_id, home_team_id, away_team_id, winner_team_id, result_type in matches:
+        if home_team_id not in stats or away_team_id not in stats:
+            continue
+
+        stats[home_team_id]["played"] += 1
+        stats[away_team_id]["played"] += 1
+
+        if result_type in {"no_result", "abandoned", "tie"} or winner_team_id is None:
+            stats[home_team_id]["nr"] += 1
+            stats[away_team_id]["nr"] += 1
+            stats[home_team_id]["points"] += 1
+            stats[away_team_id]["points"] += 1
+        else:
+            loser_team_id = away_team_id if winner_team_id == home_team_id else home_team_id
+            stats[winner_team_id]["won"] += 1
+            stats[winner_team_id]["points"] += 2
+            stats[loser_team_id]["lost"] += 1
+
+        innings = conn.execute(
+            """
+            SELECT batting_team_id, bowling_team_id, runs, balls_faced
+            FROM innings_scores
+            WHERE match_id = ?
+            """,
+            (match_id,),
+        ).fetchall()
+        for batting_team_id, bowling_team_id, runs, balls_faced in innings:
+            if batting_team_id in stats:
+                stats[batting_team_id]["runs_for"] += runs
+                stats[batting_team_id]["balls_for"] += balls_faced
+            if bowling_team_id in stats:
+                stats[bowling_team_id]["runs_against"] += runs
+                stats[bowling_team_id]["balls_against"] += balls_faced
+
+    ranked_rows = []
+    for team_id, row in stats.items():
+        run_rate_for = (
+            row["runs_for"] / (row["balls_for"] / 6)
+            if row["balls_for"]
+            else 0
+        )
+        run_rate_against = (
+            row["runs_against"] / (row["balls_against"] / 6)
+            if row["balls_against"]
+            else 0
+        )
+        row["nrr"] = round(run_rate_for - run_rate_against, 3)
+        ranked_rows.append((team_id, row))
+
+    ranked_rows.sort(
+        key=lambda item: (
+            -item[1]["points"],
+            -item[1]["nrr"],
+            -item[1]["won"],
+            item[1]["team_name"],
+        ),
+    )
+
+    conn.execute("DELETE FROM team_standings WHERE season_id = ?", (season_id,))
+    now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    for rank, (team_id, row) in enumerate(ranked_rows, start=1):
+        conn.execute(
+            """
+            INSERT INTO team_standings (
+                season_id, team_id, rank, matches_played, won, lost, no_result,
+                points, net_run_rate, last_calculated_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                season_id,
+                team_id,
+                rank,
+                row["played"],
+                row["won"],
+                row["lost"],
+                row["nr"],
+                row["points"],
+                row["nrr"],
+                now,
+            ),
+        )
 
 
 def cache_get(key: str) -> Any | None:
