@@ -192,9 +192,9 @@ Validation and HTTP semantics:
 - IPL years before 2008 return `400` with `ipl_not_started`.
 - Years after the scheduled season return `422` with `season_not_available`.
 
-## What Was Considered Beyond The Prompt
+## What Was Considered Beyond The Problem Statement
 
-The prompt asks for schema and API contracts. These extra decisions were included because they improve backend design quality without adding unnecessary complexity:
+The problem statement asks for schema and API contracts. These extra decisions were included because they improve backend design quality without adding unnecessary complexity:
 
 - Separate `team_seasons` from `teams` so captain and squad changes are season-aware.
 - Model `venues` separately to avoid repeating stadium/city data in matches.
@@ -205,7 +205,7 @@ The prompt asks for schema and API contracts. These extra decisions were include
 - Document the difference between local SQLite execution and production PostgreSQL schema usage.
 - Add a runnable frontend/backend reference while preserving the original design artifacts.
 - Add clear known-error behavior for pre-IPL and future seasons.
-- Add a scheduled standings refresh job and audit table even though the prompt did not require background jobs.
+- Add a scheduled standings refresh job and audit table even though the problem statement did not require background jobs.
 
 ## API Response Screenshots
 
