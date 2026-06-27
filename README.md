@@ -61,6 +61,21 @@ Important tables:
 - `innings_scores`: score rows per innings.
 - `team_standings`: materialized read model for fast points table reads.
 
+Table purpose in brief:
+
+| Table | Why it exists |
+| --- | --- |
+| `seasons` | Keeps every endpoint season-scoped and supports historical/upcoming season behavior. |
+| `teams` | Stores stable franchise data once instead of repeating team names, cities, and logos. |
+| `venues` | Normalizes stadium data so match rows only reference a venue. |
+| `players` | Creates one reusable player record that can appear in different season squads. |
+| `team_seasons` | Connects teams to seasons and stores season-specific captain data. |
+| `squad_members` | Models player membership and role per team per season. |
+| `matches` | Stores schedule, teams, status, result type, winner, and result summary. |
+| `innings_scores` | Stores numeric score data needed for display, totals, and NRR calculation. |
+| `team_standings` | Stores the computed points table as a fast read model. |
+| `standings_refresh_runs` | Audits scheduled standings refresh jobs and makes background updates observable. |
+
 The schema is normalized so that:
 
 - team details are not duplicated across matches,
@@ -194,18 +209,26 @@ Validation and HTTP semantics:
 
 ## What Was Considered Beyond The Problem Statement
 
-The problem statement asks for schema and API contracts. These extra decisions were included because they improve backend design quality without adding unnecessary complexity:
+The problem statement asks for schema and API contracts. These extra decisions were included because they improve correctness, performance, maintainability, or agent implementability without adding unnecessary complexity.
 
-- Separate `team_seasons` from `teams` so captain and squad changes are season-aware.
-- Model `venues` separately to avoid repeating stadium/city data in matches.
-- Store innings scores numerically so totals, NRR, and score displays are derivable.
-- Keep `result_type` separate from `status`, because a completed match can end normally, be tied, abandoned, or have no result.
-- Use stable team codes as API identifiers instead of exposing internal IDs.
-- Add indexes for season match listing, status filtering, standings ranking, and squad role lookup.
-- Document the difference between local SQLite execution and production PostgreSQL schema usage.
-- Add a runnable frontend/backend reference while preserving the original design artifacts.
-- Add clear known-error behavior for pre-IPL and future seasons.
-- Add a scheduled standings refresh job and audit table even though the problem statement did not require background jobs.
+| Addition | Technical importance |
+| --- | --- |
+| Season-aware team modeling through `team_seasons` | Captains and squads change across seasons, so this avoids corrupting historical team data when a later season changes. |
+| Season-aware squads through `squad_members` | Players can move franchises or have different roles over time, so squad membership must not live directly on `players` or `teams`. |
+| Separate `venues` table | Prevents repeated stadium/city text in every match row and makes venue filters or future venue metadata easy to add. |
+| Numeric `innings_scores` table | Enables score display, run-rate math, and NRR calculation from source data instead of parsing strings like `172/6 (19.2)`. |
+| Separate `status` and `result_type` | `status` answers whether a match is upcoming/live/completed; `result_type` answers how it ended. Keeping them separate handles normal, no-result, abandoned, and tie cases cleanly. |
+| Stable `teamCode` API identifiers | Clients can call `/teams/CSK` or filter by `teamCode=MI` without depending on internal database IDs. |
+| Server-side pagination | The matches endpoint can support full 74-match seasons without forcing clients to load every row at once. |
+| TTL caching | Points table and team/squad endpoints are read-heavy and relatively stable, so a short in-memory TTL reduces repeated joins and response formatting. |
+| No cache on live match listing | Match status and score can change frequently, so this avoids serving stale live data. |
+| Materialized `team_standings` read model | Points table reads are fast, while the canonical data still lives in `matches` and `innings_scores`. |
+| Scheduled 9 AM standings refresh | A background job can recompute standings after completed matches, compare match counts, update NRR/points, and audit each run in `standings_refresh_runs`. |
+| Known season error handling | Requests before 2008 return `ipl_not_started`; requests after the scheduled season return `season_not_available`, which is clearer than a generic 404. |
+| 2027 schedule-only season | Demonstrates how an upcoming season can have fixtures ready while standings remain initialized at zero. |
+| Indexes on common access paths | Season/date match listing, status filtering, standings ranking, and squad role lookup are indexed because those are natural API query patterns. |
+| SQLite runtime plus PostgreSQL design schema | The app can run locally without PostgreSQL, while `schema.sql` still satisfies the preferred production RDBMS design. |
+| React reference frontend | Infinite scroll and season switching show how the API contracts would power the actual IPL tabs. |
 
 ## API Response Screenshots
 
