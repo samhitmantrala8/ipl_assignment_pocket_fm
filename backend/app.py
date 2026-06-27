@@ -589,8 +589,9 @@ def player_ref(player_id: int | None, name: str | None) -> dict[str, Any] | None
 
 def backfill_historical_demo_seasons(conn: sqlite3.Connection) -> None:
     team_ids = [row[0] for row in conn.execute("SELECT id FROM teams ORDER BY id LIMIT 10")]
+    venue_ids = [row[0] for row in conn.execute("SELECT id FROM venues ORDER BY id")]
     player_ids = [row[0] for row in conn.execute("SELECT id FROM players ORDER BY id")]
-    if len(team_ids) < 2 or len(player_ids) < 4:
+    if len(team_ids) < 2 or len(venue_ids) < 1 or len(player_ids) < 4:
         return
 
     team_names = {
@@ -675,7 +676,7 @@ def backfill_historical_demo_seasons(conn: sqlite3.Connection) -> None:
             if home_team_id == away_team_id:
                 away_team_id = team_ids[(match_number + year + 5) % len(team_ids)]
 
-            venue_id = ((match_number + year) % 10) + 1
+            venue_id = venue_ids[(match_number + year) % len(venue_ids)]
             home_runs = 145 + ((year + match_number * 7) % 62)
             away_runs = 138 + ((year + match_number * 5) % 58)
             is_scheduled = year == SCHEDULED_SEASON
